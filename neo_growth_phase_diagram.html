@@ -783,7 +783,7 @@ function renderStaticEquations() {
     '$$\\dot{k} = A k^{\\alpha} - c - (n+g+\\delta)\\,k,$$',
     '$$k(0)=k_0,$$',
     '$$\\frac{\\dot{c}}{c} = \\frac{1}{\\theta}\\big(\\alpha A k^{\\alpha-1} - \\delta - \\rho\\big) - g,$$',
-    '$$\\lim_{t\\to\\infty}\\Big\\{\\,k(t)\\,\\exp\\Big(-\\int_{0}^{t}[\\rho - (1-\\theta)g - n]ds\\Big)\\Big\\}=0.$$'
+    '$$0 = \\lim_{t\\to\\infty}\\Big\\{\\,k(t)\\,\\exp\\Big(-\\int_{0}^{t}[\\rho - (1-\\theta)g - n]ds\\Big)\\Big\\}.$$'
   ].join('');
   if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]);
 }
