@@ -103,12 +103,12 @@
   #sidebar { overflow-x: auto; overflow-y: auto; }
   #sidebarInner { min-width: 520px; width: 100%; }
   .panel h2 { font-size: 14px; margin: 10px 0; color: var(--accent); }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid-2 { display: grid; grid-template-columns: repeat(2, minmax(140px, 1fr)); gap: 8px; }
   .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
   .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
   .field label { font-size: 12px; color: var(--muted); display:flex; align-items:center; gap:6px; }
   .field input[type="number"], .field select { background: var(--bg); border: 1px solid var(--line); color: var(--text);
-    border-radius: 6px; padding: 6px 8px; font-size: 13px; align-self: flex-start; width: 100%; max-width: 200px; }
+    border-radius: 6px; padding: 6px 8px; font-size: 13px; align-self: stretch; width: 100%; box-sizing: border-box; }
   .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items:center; }
   .muted { color: var(--muted); font-size: 12px; }
   .row { display:flex; align-items:center; justify-content:space-between; margin: 8px 0 6px; }
