@@ -15,6 +15,9 @@
 </script>
 <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" id="mathjax" defer></script>
 <style>
+  :root {
+    --sidebar-width: 520px;
+  }
   :root[data-theme='dark'] {
     --bg: #0b1020;
     --panel: #0f172a;
@@ -55,17 +58,50 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; }
   .app {
     display: grid;
-    grid-template-columns: 520px 1fr;
+    grid-template-columns: var(--sidebar-width) minmax(12px, 16px) 1fr;
     grid-template-rows: auto 1fr;
-    gap: 12px; height: 100%; padding: 12px; box-sizing: border-box;
+    column-gap: 12px;
+    row-gap: 12px;
+    height: 100%; padding: 12px; box-sizing: border-box;
   }
   .header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;
     padding: 10px 14px; background: linear-gradient(180deg, var(--panel), var(--panel-2));
     border: 1px solid var(--line); border-radius: 10px; }
   .header h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
   .header .right.controls { display:flex; align-items: flex-end; gap: 12px; }
+  #sidebarResize {
+    align-self: stretch;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: col-resize;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    touch-action: none;
+    margin: 0;
+    position: relative;
+  }
+  #sidebarResize::before {
+    content: '';
+    position: absolute;
+    top: 16px;
+    bottom: 16px;
+    left: 50%;
+    width: 2px;
+    transform: translateX(-50%);
+    background: var(--line);
+    border-radius: 999px;
+    transition: background 0.2s ease;
+  }
+  #sidebarResize:hover::before,
+  body.sidebar-resizing #sidebarResize::before {
+    background: var(--accent);
+  }
   .panel { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--line);
-    border-radius: 10px; padding: 12px; overflow: auto; }
+    border-radius: 10px; padding: 12px; overflow-y: auto; overflow-x: hidden; }
+  #sidebar { overflow-x: auto; overflow-y: auto; }
+  #sidebarInner { min-width: 520px; width: 100%; }
   .panel h2 { font-size: 14px; margin: 10px 0; color: var(--accent); }
   .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
@@ -76,12 +112,15 @@
   .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items:center; }
   .muted { color: var(--muted); font-size: 12px; }
   .row { display:flex; align-items:center; justify-content:space-between; margin: 8px 0 6px; }
-  .traj-list { max-height: 160px; overflow: auto; border: 1px dashed var(--line); padding: 6px; border-radius: 8px; background: var(--chip); }
+  .traj-list { max-height: 160px; overflow-y: auto; overflow-x: auto; border: 1px dashed var(--line); padding: 6px; border-radius: 8px; background: var(--chip); }
+  .traj-list > div { min-width: 100%; }
   .traj-item { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed rgba(127,127,127,0.2); }
   .traj-item:last-child { border-bottom: none; }
   .traj-name { font-size: 12px; }
   .traj-actions button { font-size: 11px; padding: 4px 8px; }
-  .equations { margin-top: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--chip); }
+  .equations { margin-top: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--chip);
+    overflow-x: auto; }
+  .equations > div { display: inline-block; min-width: 100%; }
   .equations h3 { margin: 0 0 6px 0; font-size: 13px; color: var(--accent-2); display:flex; align-items:center; gap:8px; justify-content:space-between; }
   #lociTitle { justify-content: flex-start; }
   .chip { padding:2px 6px; border:1px solid var(--line); border-radius:999px; font-size:11px; background: var(--chip); }
@@ -121,6 +160,7 @@
     border-left: 1px solid var(--tooltip-border);
     border-top: 1px solid var(--tooltip-border);
   }
+  body.sidebar-resizing { cursor: col-resize; user-select: none; }
 </style>
 </head>
 <body>
@@ -140,6 +180,7 @@
   </div>
 
   <div class="panel" id="sidebar">
+    <div id="sidebarInner">
     <h2>Model parameters</h2>
     <div class="grid-2">
       <div class="field"><label>A (level of tech.)</label><input type="number" step="0.01" id="A" value="1.00"></div>
@@ -252,7 +293,10 @@
       <h3>Other points of interest</h3>
       <div id="poiDynamic"></div>
     </div>
+    </div>
   </div>
+
+  <div id="sidebarResize" role="separator" aria-orientation="vertical" aria-label="Resize parameter panel" tabindex="0"></div>
 
   <div class="panel" id="plotPanel">
     <div id="plot" style="width:100%; height:100%; min-height: 560px;"></div>
@@ -311,6 +355,101 @@ function sanitizeAndWriteBack(id, x, lo, hi, def) {
   const el = document.getElementById(id); if (el) el.value = String(y); return y;
 }
 function safePow(base, exp) { const b = Math.max(1e-12, base); return Math.pow(b, exp); }
+
+// ------------ Sidebar resizing ------------
+const SIDEBAR_WIDTH_KEY = 'ramsey_sidebar_width';
+const SIDEBAR_MIN = 320;
+const SIDEBAR_MAX = 760;
+let sidebarResizeScheduled = false;
+
+function schedulePlotResize() {
+  if (sidebarResizeScheduled) return;
+  sidebarResizeScheduled = true;
+  requestAnimationFrame(() => {
+    sidebarResizeScheduled = false;
+    if (window.Plotly && Plotly.Plots && typeof Plotly.Plots.resize === 'function') {
+      const plotEl = document.getElementById('plot');
+      if (plotEl) Plotly.Plots.resize(plotEl);
+    }
+  });
+}
+
+function applySidebarWidth(px, persist=false) {
+  const width = clampNumber(px, SIDEBAR_MIN, SIDEBAR_MAX);
+  document.documentElement.style.setProperty('--sidebar-width', `${width}px`);
+  schedulePlotResize();
+  if (persist) {
+    try { localStorage.setItem(SIDEBAR_WIDTH_KEY, String(width)); } catch (e) {}
+  }
+  return width;
+}
+
+function initSidebarWidth() {
+  let saved = NaN;
+  try { saved = parseFloat(localStorage.getItem(SIDEBAR_WIDTH_KEY)); } catch (e) { saved = NaN; }
+  if (isFinite(saved)) applySidebarWidth(saved, false);
+}
+
+function initSidebarResizer() {
+  const handle = document.getElementById('sidebarResize');
+  const sidebar = document.getElementById('sidebar');
+  if (!handle || !sidebar) return;
+  handle.style.touchAction = 'none';
+  let startX = 0;
+  let startWidth = sidebar.getBoundingClientRect().width;
+  let currentWidth = startWidth;
+  let resizing = false;
+  handle.setAttribute('aria-valuemin', String(SIDEBAR_MIN));
+  handle.setAttribute('aria-valuemax', String(SIDEBAR_MAX));
+  const updateAriaValue = (val) => handle.setAttribute('aria-valuenow', String(Math.round(val)));
+
+  handle.addEventListener('pointerdown', (e) => {
+    resizing = true;
+    startX = e.clientX;
+    startWidth = sidebar.getBoundingClientRect().width;
+    currentWidth = startWidth;
+    if (handle.setPointerCapture) handle.setPointerCapture(e.pointerId);
+    document.body.classList.add('sidebar-resizing');
+    e.preventDefault();
+  });
+
+  handle.addEventListener('pointermove', (e) => {
+    if (!resizing) return;
+    const delta = e.clientX - startX;
+    currentWidth = applySidebarWidth(startWidth + delta, false);
+    updateAriaValue(currentWidth);
+    e.preventDefault();
+  });
+
+  const finish = (e) => {
+    if (!resizing) return;
+    resizing = false;
+    if (handle.releasePointerCapture) {
+      try { handle.releasePointerCapture(e.pointerId); } catch (err) {}
+    }
+    document.body.classList.remove('sidebar-resizing');
+    currentWidth = applySidebarWidth(currentWidth, true);
+    updateAriaValue(currentWidth);
+  };
+  handle.addEventListener('pointerup', finish);
+  handle.addEventListener('pointercancel', finish);
+
+  handle.addEventListener('keydown', (e) => {
+    const step = e.shiftKey ? 40 : 16;
+    if (e.key === 'ArrowLeft') {
+      currentWidth = applySidebarWidth(currentWidth - step, true);
+      e.preventDefault();
+    } else if (e.key === 'ArrowRight') {
+      currentWidth = applySidebarWidth(currentWidth + step, true);
+      e.preventDefault();
+    }
+    updateAriaValue(currentWidth);
+  });
+
+  const styleWidth = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sidebar-width'));
+  if (isFinite(styleWidth)) currentWidth = styleWidth;
+  updateAriaValue(currentWidth);
+}
 
 function readParams() {
   let p = {
@@ -891,6 +1030,8 @@ function resetDefaults() {
 
 // ------------ Event wiring ------------
 window.addEventListener('DOMContentLoaded', () => {
+  initSidebarWidth();
+  initSidebarResizer();
   initTheme();
   document.getElementById('theme').addEventListener('change', (e) => applyTheme(e.target.value));
   document.getElementById('resetDefaults').addEventListener('click', () => resetDefaults());
