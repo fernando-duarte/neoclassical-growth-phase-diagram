@@ -18,7 +18,7 @@ $$k(0) = k_0$$
 
 $$\frac{\dot{c}}{c} = \frac{1}{\theta}\left[\alpha A k^{\alpha-1} - \delta - \rho\right] - g$$
 
-$$\lim_{t \to \infty} \left\{ k(t) \exp\left(-\int_0^t [\rho - (1-\theta)g - n] ds\right) \right\} = 0$$
+$$\lim_{t \to \infty} \left[ k(t) \exp\left(-\int_0^t [\rho - (1-\theta)g - n] ds\right) \right] = 0$$
 
 ### Model Variables
 - $k$: Capital per effective labor
@@ -41,9 +41,12 @@ Fully adjustable economic parameters:
 
 ## Dependencies
 
-* **Plotly.js** `2.35.2` (MIT) for interactive plotting.
+* **Plotly.js** 2.35.2 (MIT) for interactive plotting.
+
   CDN: `https://cdn.plot.ly/plotly-2.35.2.min.js`
+  
 * **MathJax v3 (tex‑svg)** (Apache‑2.0) for LaTeX rendering.
+
   CDN: `https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js`
 
 Everything else is HTML, CSS, and vanilla JavaScript (ES2015+). No frameworks.
@@ -60,8 +63,8 @@ If you need to run fully offline, download the two scripts above and reference t
 ## Tips and troubleshooting
 
 * If a path seems truncated at large $k$, press **Fit to data** to widen the view.
-* For noisy saddle legs, lower **Saddle epsilon (k)** or increase saddle $T$.
-* Very large $dt$ can reduce accuracy; prefer increasing $T$ first.
+* To fix noisy saddle paths, lower **Saddle epsilon ($k$)** or increase saddle $T$.
+* Very large $dt$ can reduce accuracy, try increasing $T$ first.
 
 ## Contributing
 
