@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Neoclassical Growth Model Phase Diagram</title>
+<link rel="preconnect" href="https://cdn.plot.ly">
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js" defer></script>
+<!-- MathJax for typeset equations -->
+<script>
+  window.MathJax = {
+    tex: {inlineMath: [['$', '$'], ['\\(', '\\)']]},
+    svg: {fontCache: 'global'}
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js" id="mathjax" defer></script>
+<style>
+  :root[data-theme='dark'] {
+    --bg: #0b1020;
+    --panel: #0f172a;
+    --panel-2: #0b1220;
+    --text: #e5e7eb;
+    --muted: #a3a3a3;
+    --accent: #2563eb;
+    --accent-2: #0891b2;
+    --danger: #b91c1c;
+    --ok: #059669;
+    --line: #1f2a44;
+    --grid: #182238;
+    --chip: rgba(255,255,255,0.04);
+    --primary-bg: linear-gradient(180deg, #14233b, #0a1a33);
+    --tooltip-bg: #0f172a;
+    --tooltip-text: #e5e7eb;
+    --tooltip-border: #1f2a44;
+  }
+  :root[data-theme='light'] {
+    --bg: #f8fafc;
+    --panel: #ffffff;
+    --panel-2: #f8fafc;
+    --text: #0f172a;
+    --muted: #475569;
+    --accent: #2563eb;
+    --accent-2: #0891b2;
+    --danger: #b91c1c;
+    --ok: #059669;
+    --line: #e5e7eb;
+    --grid: #e5e7eb;
+    --chip: rgba(0,0,0,0.03);
+    --primary-bg: linear-gradient(180deg, #eaf2ff, #e6f7ff);
+    --tooltip-bg: #ffffff;
+    --tooltip-text: #0f172a;
+    --tooltip-border: #e5e7eb;
+  }
+  html, body { height: 100%; margin: 0; background: var(--bg); color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji"; }
+  .app {
+    display: grid;
+    grid-template-columns: 520px 1fr;
+    grid-template-rows: auto 1fr;
+    gap: 12px; height: 100%; padding: 12px; box-sizing: border-box;
+  }
+  .header { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px; background: linear-gradient(180deg, var(--panel), var(--panel-2));
+    border: 1px solid var(--line); border-radius: 10px; }
+  .header h1 { font-size: 18px; margin: 0; letter-spacing: 0.2px; }
+  .header .right.controls { display:flex; align-items: flex-end; gap: 12px; }
+  .panel { background: linear-gradient(180deg, var(--panel), var(--panel-2)); border: 1px solid var(--line);
+    border-radius: 10px; padding: 12px; overflow: auto; }
+  .panel h2 { font-size: 14px; margin: 10px 0; color: var(--accent); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+  .field label { font-size: 12px; color: var(--muted); display:flex; align-items:center; gap:6px; }
+  .field input[type="number"], .field select { background: var(--bg); border: 1px solid var(--line); color: var(--text);
+    border-radius: 6px; padding: 6px 8px; font-size: 13px; }
+  .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items:center; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .row { display:flex; align-items:center; justify-content:space-between; margin: 8px 0 6px; }
+  .traj-list { max-height: 160px; overflow: auto; border: 1px dashed var(--line); padding: 6px; border-radius: 8px; background: var(--chip); }
+  .traj-item { display: flex; align-items: center; justify-content: space-between; padding: 4px 0; border-bottom: 1px dashed rgba(127,127,127,0.2); }
+  .traj-item:last-child { border-bottom: none; }
+  .traj-name { font-size: 12px; }
+  .traj-actions button { font-size: 11px; padding: 4px 8px; }
+  .equations { margin-top: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--chip); }
+  .equations h3 { margin: 0 0 6px 0; font-size: 13px; color: var(--accent-2); display:flex; align-items:center; gap:8px; justify-content:space-between; }
+  #lociTitle { justify-content: flex-start; }
+  .chip { padding:2px 6px; border:1px solid var(--line); border-radius:999px; font-size:11px; background: var(--chip); }
+  .info {
+    display:inline-flex; align-items:center; justify-content:center;
+    width:16px; height:16px; border:1px solid var(--line);
+    border-radius:50%; font-size:11px; line-height:16px; color: var(--muted);
+    cursor: pointer; user-select:none; position: relative;
+  }
+  .tooltip {
+    position: fixed;
+    z-index: 2000;
+    background: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    border: 1px solid var(--tooltip-border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    max-width: 320px;
+    line-height: 1.25;
+    font-size: 12px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    pointer-events: none;
+  }
+  .tooltip .tooltip-arrow {
+    position: absolute;
+    width: 8px; height: 8px;
+    background: var(--tooltip-bg);
+    transform: rotate(45deg);
+  }
+  .tooltip-left .tooltip-arrow {
+    right: -4px; top: 50%; margin-top: -4px;
+    border-right: 1px solid var(--tooltip-border);
+    border-bottom: 1px solid var(--tooltip-border);
+  }
+  .tooltip-right .tooltip-arrow {
+    left: -4px; top: 50%; margin-top: -4px;
+    border-left: 1px solid var(--tooltip-border);
+    border-top: 1px solid var(--tooltip-border);
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>Neoclassical Growth Model Phase Diagram</h1>
+    <div class="right controls">
+      <div class="field" style="min-width:120px; margin:0;">
+        <label>Theme</label>
+        <select id="theme">
+          <option value="light" selected>light</option>
+          <option value="dark">dark</option>
+        </select>
+      </div>
+      <button id="resetDefaults" title="Reset all inputs and plot to defaults">Reset defaults</button>
+    </div>
+  </div>
+
+  <div class="panel" id="sidebar">
+    <h2>Model parameters</h2>
+    <div class="grid-2">
+      <div class="field"><label>A (level of tech.)</label><input type="number" step="0.01" id="A" value="1.00"></div>
+      <div class="field"><label>alpha (elasticity of y w.r.t. k)</label><input type="number" step="0.01" id="alpha" value="0.33"></div>
+      <div class="field"><label>delta (depreciation)</label><input type="number" step="0.001" id="delta" value="0.08"></div>
+      <div class="field"><label>rho (discount rate)</label><input type="number" step="0.001" id="rho" value="0.02"></div>
+      <div class="field"><label>n (pop. growth)</label><input type="number" step="0.001" id="n" value="0.01"></div>
+      <div class="field"><label>g (tech. growth)</label><input type="number" step="0.001" id="g" value="0.02"></div>
+      <div class="field"><label>theta (CRRA)</label><input type="number" step="0.01" id="sigma" value="2.00"></div>
+      <div class="field"><label>k0 (initial capital)</label><input type="number" step="0.01" id="k0" value="0.50"></div>
+    </div>
+
+    <div class="row"><h2>Saddle path integration</h2></div>
+    <div class="grid-2">
+      <div class="field"><label>T (num. years)</label><input type="number" step="1" id="T_sad" value="200"></div>
+      <div class="field"><label>dt (step)</label><input type="number" step="0.001" id="dt_sad" value="0.02"></div>
+    </div>
+    <div class="field">
+      <label>Clamp c,k&gt;0</label>
+      <select id="clamp_sad"><option value="yes" selected>yes</option><option value="no">no</option></select>
+    </div>
+
+    <div class="row">
+      <h2>Axes</h2>
+      <div class="controls" style="width:100%; justify-content: flex-end;">
+        <button id="fitAxes">Fit to data</button>
+        <span class="info" data-side="left" data-tip="Fit to data: choose axes that frame the steady state, kdot=0 (clipped to c≥0), and user-added paths (excludes saddle path).">i</span>
+        <button id="resetZoom">Reset zoom</button>
+        <span class="info" data-side="left" data-tip="Reset zoom: return to autoscale for what's currently visible, without changing parameters.">i</span>
+        <button id="applyAxes">Apply axes</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>k min</label><input type="number" step="0.01" id="kmin" value="0.00"></div>
+      <div class="field"><label>k max</label><input type="number" step="0.01" id="kmax" value="6.00"></div>
+      <div class="field"><label>c min</label><input type="number" step="0.01" id="cmin" value="0.00"></div>
+      <div class="field"><label>c max</label><input type="number" step="0.01" id="cmax" value="2.50"></div>
+    </div>
+
+    <div class="row">
+      <h2>Curves &amp; paths</h2>
+      <div class="controls">
+        <button class="primary" id="recompute">Recompute</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Show kdot = 0</label>
+        <select id="showKdot"><option value="yes" selected>yes</option><option value="no">no</option></select>
+      </div>
+      <div class="field"><label>Show cdot = 0</label>
+        <select id="showCdot"><option value="yes" selected>yes</option><option value="no">no</option></select>
+      </div>
+      <div class="field"><label>Show saddle path</label>
+        <select id="showSaddle"><option value="yes" selected>yes</option><option value="no">no</option></select>
+      </div>
+      <div class="field"><label>Show golden rule k</label>
+        <select id="showKgr"><option value="no" selected>no</option><option value="yes">yes</option></select>
+      </div>
+      <div class="field">
+        <label>Saddle epsilon (k) <span class="info" data-side="right" data-tip="Saddle epsilon: small horizontal offset ε used to seed the stable manifold near (k*,c*); integrate backward from (k*±ε, c*±m ε). Reduce if wobbly; increase slightly if path too short.">i</span></label>
+        <input type="number" step="0.0001" id="eps" value="0.010" style="max-width:110px;">
+      </div>
+    </div>
+
+    <div class="row">
+      <h2>Trajectories</h2>
+      <div class="controls">
+        <button id="clearTraj" class="warn">Clear all</button>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>T (num. years)</label><input type="number" step="1" id="T_traj" value="200"></div>
+      <div class="field"><label>dt (step)</label><input type="number" step="0.001" id="dt_traj" value="0.02"></div>
+    </div>
+    <div class="field">
+      <label>Clamp c,k&gt;0</label>
+      <select id="clamp_traj"><option value="yes" selected>yes</option><option value="no">no</option></select>
+    </div>
+    <div class="grid-2">
+      <div class="field"><label>Initial c0</label><input type="number" step="0.01" id="c0" value="0.30"></div>
+      <div class="field"><label>Add trajectory</label><button id="addTraj">Add</button></div>
+    </div>
+    <div class="traj-list" id="trajList"></div>
+
+    <div class="equations" id="eqBlock">
+      <h3>Model equations</h3>
+      <div id="eqStatic"></div>
+    </div>
+
+    <div class="equations" id="lociBlock">
+      <h3 id="lociTitle">Locus of $\\dot{c}=0$ and $\\dot{k}=0$</h3>
+      <div id="lociDynamic"></div>
+    </div>
+
+    <div class="equations" id="stateBlock">
+      <h3>Steady state</h3>
+      <div id="stateDynamic"></div>
+      <div id="msg" class="muted" style="margin-top:6px;"></div>
+    </div>
+
+    <div class="equations" id="initSaddleBlock">
+      <h3 style="display:flex; align-items:center; justify-content:space-between;">
+        <span>Initial point</span>
+        <button id="useC0" class="smallBtn" title="Set c0 = c(0)">Use for c0</button>
+      </h3>
+      <div id="initDynamic"></div>
+    </div>
+
+    <div class="equations" id="poiBlock">
+      <h3>Other points of interest</h3>
+      <div id="poiDynamic"></div>
+    </div>
+  </div>
+
+  <div class="panel" id="plotPanel">
+    <div id="plot" style="width:100%; height:100%; min-height: 560px;"></div>
+  </div>
+</div>
+
+<script>
+// ------------ Theme handling ------------
+function applyTheme(theme) {
+  const root = document.documentElement;
+  root.setAttribute('data-theme', theme);
+  try { localStorage.setItem('ramsey_theme', theme); } catch (e) {}
+  redraw();
+}
+function initTheme() {
+  let theme = 'light';
+  try { theme = localStorage.getItem('ramsey_theme') || 'light'; } catch (e) {}
+  document.getElementById('theme').value = theme;
+  applyTheme(theme);
+}
+
+// ------------ Colors & styles ------------
+const COLORS = {
+  kdot: '#3b82f6',
+  cdot: '#f59e0b',
+  saddle: '#ec4899',
+  steady: '#10b981',
+  kgr: '#06b6d4'
+};
+const RESERVED = new Set([
+  COLORS.kdot.toLowerCase(), COLORS.cdot.toLowerCase(), COLORS.saddle.toLowerCase(),
+  COLORS.steady.toLowerCase(), COLORS.kgr.toLowerCase()
+]);
+const TRAJ_PALETTE = [
+  '#7f1d1d','#5b21b6','#78350f','#9f1239','#374151','#7a0447','#7c2d12','#3f3f46',
+  '#581c87','#422006','#1f2937','#701a75','#57534e','#991b1b','#6b21a8','#27272a'
+];
+const TRAJ_STRIDE = 7;
+function trajColorForId(id) {
+  let idx = (Math.abs(id) * TRAJ_STRIDE) % TRAJ_PALETTE.length;
+  let color = TRAJ_PALETTE[idx].toLowerCase();
+  if (RESERVED.has(color)) {
+    for (let j=0; j<TRAJ_PALETTE.length; j++) {
+      idx = (idx + 1) % TRAJ_PALETTE.length;
+      color = TRAJ_PALETTE[idx].toLowerCase();
+      if (!RESERVED.has(color)) break;
+    }
+  }
+  return color;
+}
+
+// ------------ Utilities & Parameters ------------
+function clampNumber(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
+function sanitizeAndWriteBack(id, x, lo, hi, def) {
+  let y = x; if (!isFinite(y)) y = def; if (lo !== null && hi !== null) y = clampNumber(y, lo, hi);
+  const el = document.getElementById(id); if (el) el.value = String(y); return y;
+}
+function safePow(base, exp) { const b = Math.max(1e-12, base); return Math.pow(b, exp); }
+
+function readParams() {
+  let p = {
+    A: parseFloat(document.getElementById('A').value),
+    alpha: parseFloat(document.getElementById('alpha').value),
+    delta: parseFloat(document.getElementById('delta').value),
+    rho: parseFloat(document.getElementById('rho').value),
+    n: parseFloat(document.getElementById('n').value),
+    g: parseFloat(document.getElementById('g').value),
+    sigma: parseFloat(document.getElementById('sigma').value), // labeled as theta
+    k0: parseFloat(document.getElementById('k0').value),
+
+    // Saddle path integration params
+    T_sad: parseFloat(document.getElementById('T_sad').value),
+    dt_sad: parseFloat(document.getElementById('dt_sad').value),
+    clamp_sad: document.getElementById('clamp_sad').value === 'yes',
+
+    // Trajectory integration params
+    T_traj: parseFloat(document.getElementById('T_traj').value),
+    dt_traj: parseFloat(document.getElementById('dt_traj').value),
+    clamp_traj: document.getElementById('clamp_traj').value === 'yes',
+
+    showKdot: document.getElementById('showKdot').value === 'yes',
+    showCdot: document.getElementById('showCdot').value === 'yes',
+    showSaddle: document.getElementById('showSaddle').value === 'yes',
+    showKgr: document.getElementById('showKgr').value === 'yes',
+    eps: parseFloat(document.getElementById('eps').value),
+    axes: {
+      kmin: parseFloat(document.getElementById('kmin').value),
+      kmax: parseFloat(document.getElementById('kmax').value),
+      cmin: parseFloat(document.getElementById('cmin').value),
+      cmax: parseFloat(document.getElementById('cmax').value)
+    }
+  };
+  p.alpha = sanitizeAndWriteBack('alpha', p.alpha, 0.01, 0.99, 0.33);
+  p.sigma = sanitizeAndWriteBack('sigma', p.sigma, 1e-4, null, 2.0);
+  p.k0    = sanitizeAndWriteBack('k0', p.k0, 1e-6, null, 0.5);
+
+  p.T_sad  = sanitizeAndWriteBack('T_sad',  p.T_sad,  1, 25000, 200);
+  p.dt_sad = sanitizeAndWriteBack('dt_sad', Math.abs(p.dt_sad), 1e-5, 5.0, 0.02);
+  p.eps    = sanitizeAndWriteBack('eps', Math.abs(p.eps), 1e-6, 0.1, 0.01);
+
+  p.T_traj  = sanitizeAndWriteBack('T_traj',  p.T_traj,  1, 25000, 200);
+  p.dt_traj = sanitizeAndWriteBack('dt_traj', Math.abs(p.dt_traj), 1e-5, 5.0, 0.02);
+
+  p.axes.kmin = sanitizeAndWriteBack('kmin', p.axes.kmin, 0, null, 0);
+  p.axes.cmin = sanitizeAndWriteBack('cmin', p.axes.cmin, 0, null, 0);
+  if (!(p.axes.kmax > p.axes.kmin)) p.axes.kmax = p.axes.kmin + 1.0;
+  if (!(p.axes.cmax > p.axes.cmin)) p.axes.cmax = p.axes.cmin + 1.0;
+  sanitizeAndWriteBack('kmax', p.axes.kmax, p.axes.kmin + 1e-6, null, p.axes.kmin + 1.0);
+  sanitizeAndWriteBack('cmax', p.axes.cmax, p.axes.cmin + 1e-6, null, p.axes.cmin + 1.0);
+  return p;
+}
+
+// --------- ODEs with log(c) ---------
+function deriv_log(k, u, p) {
+  const c = Math.exp(u);
+  const kdot = p.A * safePow(k, p.alpha) - c - (p.n + p.g + p.delta) * k;
+  const udot = (1.0 / p.sigma) * (p.alpha * p.A * safePow(k, p.alpha - 1.0) - p.delta - p.rho) - p.g;
+  return [kdot, udot];
+}
+
+function rk4Step_log(state, p, dt) {
+  let [k, u] = state;
+  const [k1, u1] = deriv_log(k, u, p);
+  const [k2, u2] = deriv_log(k + 0.5*dt*k1, u + 0.5*dt*u1, p);
+  const [k3, u3] = deriv_log(k + 0.5*dt*k2, u + 0.5*dt*u2, p);
+  const [k4, u4] = deriv_log(k + dt*k3, u + dt*u3, p);
+  const kn = k + (dt/6.0)*(k1 + 2*k2 + 2*k3 + k4);
+  const un = u + (dt/6.0)*(u1 + 2*u2 + 2*u3 + u4);
+  return [kn, un];
+}
+
+const MAX_STEPS = 800000;
+function nSteps(T, dt) { const raw = Math.max(1, Math.floor(T / dt)); return Math.min(raw, MAX_STEPS); }
+
+// ------------ Fit-to-data excluding the saddle ------------
+function collectTrajExtents() {
+  let kmax = 0, cmax = 0;
+  for (const t of TRAJ) {
+    for (const pt of t.data) {
+      if (pt && isFinite(pt[0]) && isFinite(pt[1])) {
+        if (pt[0] > kmax) kmax = pt[0];
+        if (pt[1] > cmax) cmax = pt[1];
+      }
+    }
+  }
+  return {kmax, cmax};
+}
+
+function defaultAxesNoSaddle(p) {
+  const ss = steadyState_raw(p);
+  const kgr = goldenRuleK(p);
+  const kbar = kdotXAxisIntersect(p);
+  let kmin = 0;
+  let kmaxCand = 1.0;
+  if (ss.ok) kmaxCand = Math.max(kmaxCand, 2.2*ss.kstar);
+  if (isFinite(kgr) && kgr > 0) kmaxCand = Math.max(kmaxCand, 1.15*kgr);
+  if (isFinite(kbar) && kbar > 0) kmaxCand = Math.max(kmaxCand, 1.15*kbar);
+
+  const ext = collectTrajExtents();
+  if (ext.kmax > 0) kmaxCand = Math.max(kmaxCand, 1.10*ext.kmax);
+
+  // Use kd0 (clipped at c>=0) over [0, kmaxCand] to decide c-range
+  const kd0 = kdotZeroCurve(p, 0, kmaxCand);
+  let ymax = 0;
+  if (ss.ok) ymax = Math.max(ymax, ss.cstar);
+  for (let i=0; i<kd0.y.length; i++) ymax = Math.max(ymax, kd0.y[i]);
+  if (ext.cmax > 0) ymax = Math.max(ymax, ext.cmax);
+
+  // Pad ranges a bit
+  let kmax = kmaxCand * 1.05;
+  let cmin = 0;
+  let cmax = Math.max(0.5, ymax * 1.05);
+
+  return {kmin, kmax, cmin, cmax};
+}
+
+function fitAxesToData() {
+  const p = readParams();
+  const axes = defaultAxesNoSaddle(p);
+  writeAxes(axes);
+  redraw();
+}
+
+// ------------ Integration helpers ------------
+function computeSafetyBounds(p, axes, factor) {
+  const ss = steadyState_raw(p);
+  const kgr = goldenRuleK(p);
+  const kbar = kdotXAxisIntersect(p);
+  let kref = 1.0;
+  if (isFinite(axes.kmax)) kref = Math.max(kref, axes.kmax);
+  if (ss.ok && isFinite(ss.kstar)) kref = Math.max(kref, 1.1*ss.kstar);
+  if (isFinite(kgr)) kref = Math.max(kref, 1.1*kgr);
+  if (isFinite(kbar)) kref = Math.max(kref, 1.1*kbar);
+  const kmax = Math.min(kref * factor, 1e6);
+  const kmin = 0.0;
+  const umin = Math.log(1e-12), umax = Math.log(1e9);
+  return {kmin, kmax, umin, umax};
+}
+
+function integrate_log(state0, p, dt, steps, safety, clampKpos=true) {
+  let pts = [];
+  let [k, u] = state0;
+  if (!isFinite(k) || !isFinite(u) || k <= 0) return pts;
+  u = Math.min(Math.max(u, safety.umin), safety.umax);
+  pts.push([k, Math.exp(u)]);
+  for (let i=0; i<steps; i++) {
+    const [kn, un] = rk4Step_log([k, u], p, dt);
+    if (!isFinite(kn) || !isFinite(un)) break;
+    k = kn; u = Math.min(Math.max(un, safety.umin), safety.umax);
+    if (clampKpos && (k <= 0)) break;
+    if (k < safety.kmin - 0.25*(safety.kmax-safety.kmin) ||
+        k > safety.kmax + 0.25*(safety.kmax-safety.kmin)) break;
+    pts.push([k, Math.exp(u)]);
+  }
+  return pts;
+}
+
+function steadyState_raw(p) {
+  const denom = p.delta + p.rho + p.sigma * p.g;
+  if (!(denom > 0)) return {ok:false, kstar:NaN, cstar:NaN};
+  const kstar = Math.pow(p.alpha * p.A / denom, 1.0 / (1.0 - p.alpha));
+  const cstar = p.A * Math.pow(kstar, p.alpha) - (p.n + p.g + p.delta) * kstar;
+  if (!(isFinite(kstar) && isFinite(cstar)) || kstar <= 0 || cstar <= 0) {
+    return {ok:false, kstar, cstar};
+  }
+  const a = p.alpha * p.A * Math.pow(kstar, p.alpha - 1.0) - (p.n + p.g + p.delta);
+  const J21 = (cstar / p.sigma) * p.alpha * (p.alpha - 1.0) * p.A * Math.pow(kstar, p.alpha - 2.0);
+  const trace = a;
+  const det = J21;
+  const disc = Math.max(0, trace*trace - 4.0*det);
+  const root = Math.sqrt(disc);
+  const lambdaMinus = (trace - root) / 2.0;
+  const slope = a - lambdaMinus;
+  return {ok:true, kstar, cstar, slope, lambdaMinus, trace, det};
+}
+function steadyState(p) { return steadyState_raw(p); }
+
+function goldenRuleK(p) {
+  const denom = p.n + p.g + p.delta;
+  if (!(denom > 0) || !(p.alpha > 0 && p.alpha < 1) || !(p.A > 0)) return NaN;
+  return Math.pow((p.alpha * p.A) / denom, 1.0 / (1.0 - p.alpha));
+}
+function kdotXAxisIntersect(p) {
+  const denom = p.n + p.g + p.delta;
+  if (!(denom > 0) || !(p.alpha > 0 && p.alpha < 1) || !(p.A > 0)) return NaN;
+  return Math.pow(p.A / denom, 1.0 / (1.0 - p.alpha));
+}
+
+// kdot=0 locus, clipped to c >= 0
+function kdotZeroCurve(p, kmin, kmax, npts=600) {
+  const xs = [], ys = [];
+  const step = (kmax - kmin) / Math.max(1, (npts - 1));
+  for (let i=0; i<npts; i++) {
+    const k = kmin + i * step;
+    if (!(k > 0)) continue;
+    const c = p.A * Math.pow(k, p.alpha) - (p.n + p.g + p.delta) * k;
+    if (isFinite(c) && c >= 0) { xs.push(k); ys.push(c); }
+  }
+  return {x: xs, y: ys};
+}
+function cdotZeroLine(p, cmin, cmax) {
+  const ss = steadyState_raw(p);
+  if (!ss.ok) return {x: [], y: []};
+  const k = ss.kstar;
+  return {x: [k, k], y: [cmin, cmax]};
+}
+
+// Saddle seeding
+function adaptiveEpsilon(ss, p) {
+  let eps = Math.max(1e-6, parseFloat(document.getElementById('eps').value));
+  for (let tries=0; tries<20; tries++) {
+    const kL = ss.kstar - eps, cL = ss.cstar - ss.slope * eps;
+    const kR = ss.kstar + eps, cR = ss.cstar + ss.slope * eps;
+    if (kL > 0 && cL > 0 && kR > 0 && cR > 0 && isFinite(kL) && isFinite(cL) && isFinite(kR) && isFinite(cR)) {
+      return {eps, kL, cL, kR, cR};
+    }
+    eps *= 0.5;
+  }
+  return {eps: null};
+}
+
+function saddlePath(p, axes) {
+  const ss = steadyState_raw(p);
+  if (!ss.ok) return {x: [], y: []};
+  const pick = adaptiveEpsilon(ss, p);
+  if (!pick.eps) return {x: [], y: []};
+  const {kL, cL, kR, cR} = pick;
+  const dt = Math.abs(parseFloat(document.getElementById('dt_sad').value));
+  const steps = nSteps(parseFloat(document.getElementById('T_sad').value), dt);
+  const safety = computeSafetyBounds(p, axes, 10.0);
+  const ptsL = integrate_log([kL, Math.log(cL)], p, -dt, steps, safety, true);
+  const ptsR = integrate_log([kR, Math.log(cR)], p, -dt, steps, safety, true);
+  let xs = [], ys = [];
+  for (let i=ptsL.length-1; i>=0; i--) { xs.push(ptsL[i][0]); ys.push(ptsL[i][1]); }
+  xs.push(ss.kstar); ys.push(ss.cstar);
+  for (let i=0; i<ptsR.length; i++) { xs.push(ptsR[i][0]); ys.push(ptsR[i][1]); }
+  return {x: xs, y: ys};
+}
+
+// Interpolate c on the saddle path at k0
+function cOnSaddleAtK0(p, axes, ss, sad) {
+  if (!ss.ok || !sad || !sad.x || sad.x.length < 2) {
+    return {ok:false, approx: true, c: ss.ok ? ss.cstar + ss.slope * (p.k0 - ss.kstar) : NaN};
+  }
+  const k0 = p.k0;
+  let best = null;
+  for (let i=0; i<sad.x.length-1; i++) {
+    const k1 = sad.x[i], k2 = sad.x[i+1];
+    const minK = Math.min(k1, k2), maxK = Math.max(k1, k2);
+    if (k0 >= minK && k0 <= maxK && Math.abs(k2 - k1) > 1e-12) {
+      const t = (k0 - k1) / (k2 - k1);
+      const y = sad.y[i] + t * (sad.y[i+1] - sad.y[i]);
+      const midDist = Math.abs((k1 + k2) / 2 - k0);
+      if (best === null || midDist < best.dist) best = {c: y, dist: midDist};
+    }
+  }
+  if (best) return {ok:true, approx:false, c: best.c};
+  return {ok:false, approx:true, c: ss.cstar + ss.slope * (k0 - ss.kstar)};
+}
+
+// cache for c(0) suggested
+let LATEST_C0_FROM_SADDLE = null;
+
+// ------------ Trajectory state ------------
+let TRAJ = [];
+let TRAJ_COUNTER = 1;
+function formatT(T) { return Number.isInteger(T) ? String(T) : T.toFixed(3); }
+
+function addTrajectory(p, axes) {
+  const k0 = p.k0;
+  const c0 = parseFloat(document.getElementById('c0').value);
+  if (!(isFinite(c0) && c0 > 0)) { setMsg("Provide a positive c0.", "warning"); return; }
+  const dt = Math.abs(p.dt_traj);
+  const steps = nSteps(p.T_traj, dt);
+  const safety = computeSafetyBounds(p, axes, 4.0);
+  const pts = integrate_log([k0, Math.log(c0)], p, dt, steps, safety, p.clamp_traj);
+  if (pts.length === 0) { setMsg("Trajectory could not be computed for this c0; try a different value or larger axes.", "warning"); return; }
+  const trace = { id: TRAJ_COUNTER++, name: `path c0=${c0.toFixed(3)} with T=${formatT(p.T_traj)}`, data: pts };
+  TRAJ.push(trace);
+  renderTrajList();
+  redraw();
+}
+
+function clearTrajectories() { TRAJ = []; TRAJ_COUNTER = 1; renderTrajList(); redraw(); }
+function removeTrajectory(id) { TRAJ = TRAJ.filter(t => t.id !== id); renderTrajList(); redraw(); }
+function renderTrajList() {
+  const el = document.getElementById('trajList');
+  if (TRAJ.length === 0) { el.innerHTML = '<div class="muted">No trajectories added yet.</div>'; return; }
+  el.innerHTML = '';
+  TRAJ.forEach(t => {
+    const div = document.createElement('div'); div.className = 'traj-item';
+    const name = document.createElement('div'); name.className = 'traj-name'; name.textContent = t.name;
+    const actions = document.createElement('div'); actions.className = 'traj-actions';
+    const btn = document.createElement('button'); btn.textContent = 'Remove'; btn.addEventListener('click', () => removeTrajectory(t.id));
+    actions.appendChild(btn); div.appendChild(name); div.appendChild(actions); el.appendChild(div);
+  });
+}
+
+// ------------ Axes helpers ------------
+function defaultAxes(p) {
+  const ss = steadyState_raw(p);
+  if (!ss.ok) return {kmin: 0, kmax: 6, cmin: 0, cmax: 3};
+  let kmin = 0, kmax = Math.max(2.5 * ss.kstar, ss.kstar + 1.0);
+  const kd0 = kdotZeroCurve(p, kmin, kmax);
+  let ymax = Math.max(ss.cstar, 0);
+  for (let i=0; i<kd0.y.length; i++) ymax = Math.max(ymax, kd0.y[i]);
+  let cmax = Math.max(1.3 * ss.cstar, 1.2 * ymax, 0.5);
+  for (const t of TRAJ) for (const [k, c] of t.data) { if (isFinite(k) && isFinite(c)) { kmax = Math.max(kmax, k); cmax = Math.max(cmax, c); } }
+  kmax *= 1.05; cmax *= 1.05;
+  return {kmin, kmax, cmin: 0, cmax};
+}
+function fitAxesToData() { const p = readParams(); const axes = defaultAxesNoSaddle(p); writeAxes(axes); redraw(); }
+function writeAxes(axes) {
+  document.getElementById('kmin').value = axes.kmin.toFixed(4);
+  document.getElementById('kmax').value = axes.kmax.toFixed(4);
+  document.getElementById('cmin').value = axes.cmin.toFixed(4);
+  document.getElementById('cmax').value = axes.cmax.toFixed(4);
+}
+
+// ------------ Messaging & equations ------------
+function setMsg(text, kind='muted') {
+  if (kind === 'ok') { const el = document.getElementById('msg'); if (el) el.textContent = ''; return; }
+  const el = document.getElementById('msg'); el.textContent = text; el.className = kind;
+}
+
+function renderStaticEquations() {
+  const el = document.getElementById('eqStatic');
+  el.innerHTML = [
+    '$$\\dot{k} = A k^{\\alpha} - c - (n+g+\\delta)\\,k,$$',
+    '$$k(0)=k_0,$$',
+    '$$\\frac{\\dot{c}}{c} = \\frac{1}{\\theta}\\big(\\alpha A k^{\\alpha-1} - \\delta - \\rho\\big) - g,$$',
+    '$$\\lim_{t\\to\\infty}\\Big\\{\\,k(t)\\,\\exp\\Big(-\\int_{0}^{t}[\\rho - (1-\\theta)g - n]ds\\Big)\\Big\\}=0.$$'
+  ].join('');
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]);
+}
+
+function renderLociEquations() {
+  const title = document.getElementById('lociTitle');
+  const el = document.getElementById('lociDynamic');
+  title.innerHTML = 'Locus of $\\dot{c}=0$ and $\\dot{k}=0$';
+  el.innerHTML = [
+    '$$\\dot{c}=0:\\quad k = \\left(\\frac{\\alpha A}{\\delta + \\rho + \\theta g}\\right)^{\\frac{1}{1-\\alpha}}.$$',
+    '$$\\dot{k}=0:\\quad c = A k^{\\alpha} - (n+g+\\delta)\\,k.$$'
+  ].join('');
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([title, el]);
+}
+
+function renderStateNumbers(ss) {
+  const el = document.getElementById('stateDynamic');
+  if (ss.ok) {
+    el.innerHTML = [
+      '$$k^* = ' + ss.kstar.toFixed(4) + ',\\quad c^* = ' + ss.cstar.toFixed(4) + '.$$',
+      '$$\\left.\\frac{dc}{dk}\\right|_{(k^*,c^*)} = ' + ss.slope.toFixed(4) + '.$$'
+    ].join('');
+  } else {
+    el.innerHTML = '$$\\text{Steady state not available under current parameters.}$$';
+  }
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]);
+}
+
+function renderInitOnSaddle(p, axes, ss, sad) {
+  const el = document.getElementById('initDynamic');
+  if (!ss.ok) {
+    el.innerHTML = '$$\\text{Cannot compute: steady state not available.}$$';
+    if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]);
+    LATEST_C0_FROM_SADDLE = null;
+    return;
+  }
+  const obj = cOnSaddleAtK0(p, axes, ss, sad);
+  const k0s = p.k0.toFixed(4);
+  let cVal = obj.c;
+  let html;
+  if (obj.ok && !obj.approx) {
+    html = '$$k(0)=k_0 = ' + k0s + '.$$' + '$$c(0) = ' + cVal.toFixed(4) + '.$$';
+  } else {
+    html = '$$k(0)=k_0 = ' + k0s + '.$$' + '$$c(0) \\approx ' + cVal.toFixed(4) + ' \\;\\text{(linearization near } k^*\\text{)}.$$';
+  }
+  el.innerHTML = html;
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]);
+  LATEST_C0_FROM_SADDLE = isFinite(cVal) ? cVal : null;
+}
+
+function renderPOI(p) {
+  const el = document.getElementById('poiDynamic');
+  const kgr = goldenRuleK(p);
+  const kbar = kdotXAxisIntersect(p);
+  let kgrStr = (isFinite(kgr) && kgr > 0) ? kgr.toFixed(4) : '\\text{n/a}';
+  let kbarStr = (isFinite(kbar) && kbar > 0) ? kbar.toFixed(4) : '\\text{n/a}';
+  el.innerHTML = [
+    '$$k^{\\text{gr}} = ' + kgrStr + '.$$',
+    '$$\\bar{k} = ' + kbarStr + '.$$'
+  ].join('');
+  if (window.MathJax && MathJax.typesetPromise) MathJax.typesetPromise([el]);
+}
+
+// ------------ Plotting ------------
+let firstPlot = true;
+
+function getThemeColors() {
+  const cs = getComputedStyle(document.documentElement);
+  return { grid: cs.getPropertyValue('--grid').trim(), zero: cs.getPropertyValue('--grid').trim(), text: cs.getPropertyValue('--text').trim() };
+}
+
+function buildTraces(p, axes, ss, sad) {
+  const traces = [];
+
+  if (p.showKdot) {
+    const kd0 = kdotZeroCurve(p, axes.kmin, axes.kmax);
+    traces.push({
+      type: 'scatter', mode: 'lines', name: 'kdot = 0',
+      x: kd0.x, y: kd0.y, line: { width: 2, dash: 'dash', color: COLORS.kdot },
+      hovertemplate: 'k=%{x:.4f}<br>c=%{y:.4f}<extra>kdot=0</extra>'
+    });
+  }
+  if (p.showCdot && ss.ok) {
+    const cd0 = cdotZeroLine(p, axes.cmin, axes.cmax);
+    const xVal = (cd0.x && cd0.x.length ? cd0.x[0] : ss.kstar);
+    if (xVal >= axes.kmin && xVal <= axes.kmax) {
+      traces.push({
+        type: 'scatter', mode: 'lines', name: 'cdot = 0',
+        x: cd0.x, y: cd0.y, line: { width: 2, dash: 'longdash', color: COLORS.cdot },
+        hovertemplate: 'k=%{x:.4f}<br>c=%{y:.4f}<extra>cdot=0</extra>'
+      });
+    }
+  }
+  if (p.showSaddle && ss.ok && sad.x.length > 1) {
+    traces.push({
+      type: 'scatter', mode: 'lines', name: 'Saddle path',
+      x: sad.x, y: sad.y, line: { width: 3, color: COLORS.saddle },
+      hovertemplate: 'k=%{x:.4f}<br>c=%{y:.4f}<extra>Saddle path</extra>'
+    });
+  }
+  if (p.showKgr) {
+    const kgr = goldenRuleK(p);
+    if (isFinite(kgr) && kgr > 0 && kgr >= axes.kmin && kgr <= axes.kmax) {
+      traces.push({
+        type: 'scatter', mode: 'lines', name: 'Golden rule k',
+        x: [kgr, kgr], y: [axes.cmin, axes.cmax],
+        line: { width: 2, dash: 'dot', color: COLORS.kgr },
+        hovertemplate: 'k^{gr}=%{x:.4f}<extra>Golden rule</extra>'
+      });
+    }
+  }
+  if (ss.ok) {
+    traces.push({
+      type: 'scatter', mode: 'markers', name: 'Steady state',
+      x: [ss.kstar], y: [ss.cstar], marker: { size: 10, symbol: 'circle', color: COLORS.steady },
+      showlegend: true, hovertemplate: 'k*=%{x:.4f}<br>c*=%{y:.4f}<extra>Steady state</extra>'
+    });
+  }
+  for (const t of TRAJ) {
+    const xs = t.data.map(p => p[0]);
+    const ys = t.data.map(p => p[1]);
+    const col = trajColorForId(t.id);
+    traces.push({
+      type: 'scatter', mode: 'lines', name: t.name, x: xs, y: ys,
+      line: { width: 2, color: col }, hovertemplate: 'k=%{x:.4f}<br>c=%{y:.4f}<extra>'+t.name+'</extra>'
+    });
+    if (xs.length > 0) traces.push({
+      type: 'scatter', mode: 'markers', name: t.name + ' start', x: [xs[0]], y: [ys[0]],
+      marker: { size: 7, color: col }, showlegend: false,
+      hovertemplate: 'start: k=%{x:.4f}<br>c=%{y:.4f}<extra></extra>'
+    });
+  }
+  return traces;
+}
+
+function layoutFor(axes) {
+  const colors = getThemeColors();
+  return {
+    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: colors.text },
+    xaxis: { title: 'k (capital per effective labor)', rangemode: 'tozero', gridcolor: colors.grid, zerolinecolor: colors.zero, showspikes: true, spikemode: 'across', spikecolor: '#3b82f6', spikethickness: 1, automargin: true, range: [axes.kmin, axes.kmax] },
+    yaxis: { title: 'c (consumption per effective labor)', rangemode: 'tozero', gridcolor: colors.grid, zerolinecolor: colors.zero, showspikes: true, spikemode: 'across', spikecolor: '#3b82f6', spikethickness: 1, automargin: true, range: [axes.cmin, axes.cmax] },
+    hovermode: 'closest', hoverlabel: { namelength: -1 },
+    legend: { orientation: 'h', yanchor: 'bottom', y: 1.02, xanchor: 'left', x: 0, bgcolor: 'rgba(0,0,0,0)', borderwidth: 0 },
+    margin: { l: 64, r: 24, t: 48, b: 56 }, title: { text: '', x: 0, y: 1 }, uirevision: 'keep'
+  };
+}
+
+function configObj() { return { responsive: true, displaylogo: false, scrollZoom: true, toImageButtonOptions: { filename: 'neo_growth_phase_diagram' }, modeBarButtonsToRemove: ['autoScale2d'] }; }
+
+// Tooltips
+function attachResponsiveTooltips() {
+  const GAP = 12;
+  let currentTip = null;
+  function removeTip() {
+    if (currentTip && currentTip.parentNode) currentTip.parentNode.removeChild(currentTip);
+    currentTip = null;
+  }
+  function positionTip(icon, tip, sidePref) {
+    const vw = window.innerWidth, vh = window.innerHeight;
+    const rect = icon.getBoundingClientRect();
+    tip.style.left = '-9999px'; tip.style.top = '-9999px'; tip.style.visibility = 'hidden';
+    document.body.appendChild(tip);
+    const tr = tip.getBoundingClientRect();
+    let side = sidePref === 'right' ? 'right' : 'left';
+    let x = side === 'right' ? rect.right + GAP : rect.left - tr.width - GAP;
+    if (side === 'left' && x < 8) side = 'right';
+    if (side === 'right' && x + tr.width > vw - 8) side = 'left';
+    x = side === 'right' ? rect.right + GAP : rect.left - tr.width - GAP;
+    if (x < 8) x = 8;
+    if (x + tr.width > vw - 8) x = Math.max(8, vw - tr.width - 8);
+    let y = rect.top + rect.height / 2 - tr.height / 2;
+    if (y < 8) y = 8;
+    if (y + tr.height > vh - 8) y = Math.max(8, vh - tr.height - 8);
+    tip.classList.remove('tooltip-left','tooltip-right');
+    tip.classList.add(side === 'right' ? 'tooltip-right' : 'tooltip-left');
+    tip.style.left = x + 'px';
+    tip.style.top = y + 'px';
+    tip.style.visibility = 'visible';
+  }
+  function onEnter(e) {
+    const icon = e.currentTarget;
+    const text = icon.getAttribute('data-tip');
+    if (!text) return;
+    removeTip();
+    const tip = document.createElement('div');
+    tip.className = 'tooltip';
+    tip.textContent = text;
+    const arrow = document.createElement('div');
+    arrow.className = 'tooltip-arrow';
+    tip.appendChild(arrow);
+    currentTip = tip;
+    const pref = icon.getAttribute('data-side') || 'left';
+    positionTip(icon, tip, pref);
+  }
+  function onLeave() { removeTip(); }
+  function onScrollOrResize() { removeTip(); }
+  document.querySelectorAll('.info').forEach(el => {
+    el.addEventListener('mouseenter', onEnter);
+    el.addEventListener('mouseleave', onLeave);
+  });
+  window.addEventListener('scroll', onScrollOrResize, true);
+  window.addEventListener('resize', onScrollOrResize);
+}
+
+function redraw() {
+  const p = readParams();
+  let axes = p.axes;
+  if (!(axes.kmax > axes.kmin) || !(axes.cmax > axes.cmin) || !isFinite(axes.kmax) || !isFinite(axes.cmax)) { axes = defaultAxes(p); writeAxes(axes); }
+  const ss = steadyState_raw(p);
+  const sad = saddlePath(p, axes);
+  renderStateNumbers(ss);
+  renderInitOnSaddle(p, axes, ss, sad);
+  renderPOI(p);
+  const traces = buildTraces(p, axes, ss, sad);
+  const layout = layoutFor(axes);
+  if (firstPlot) { Plotly.newPlot('plot', traces, layout, configObj()); firstPlot = false; }
+  else { Plotly.react('plot', traces, layout, configObj()); }
+}
+function resetZoom() { Plotly.relayout('plot', {'xaxis.autorange': true, 'yaxis.autorange': true}); }
+
+// ------------ Reset defaults ------------
+const DEFAULTS = {
+  A: 1.00, alpha: 0.33, delta: 0.08, rho: 0.02, n: 0.01, g: 0.02, sigma: 2.00, k0: 0.50,
+  T_sad: 200, dt_sad: 0.02, clamp_sad: 'yes',
+  T_traj: 200, dt_traj: 0.02, clamp_traj: 'yes',
+  showKdot: 'yes', showCdot: 'yes', showSaddle: 'yes', showKgr: 'no',
+  eps: 0.010,
+  axes: { kmin: 0.00, kmax: 6.00, cmin: 0.00, cmax: 2.50 }
+};
+function setInputValue(id, val) { const el = document.getElementById(id); if (el) el.value = String(val); }
+function resetDefaults() {
+  setInputValue('A', DEFAULTS.A); setInputValue('alpha', DEFAULTS.alpha); setInputValue('delta', DEFAULTS.delta);
+  setInputValue('rho', DEFAULTS.rho); setInputValue('n', DEFAULTS.n); setInputValue('g', DEFAULTS.g);
+  setInputValue('sigma', DEFAULTS.sigma); setInputValue('k0', DEFAULTS.k0);
+  setInputValue('T_sad', DEFAULTS.T_sad); setInputValue('dt_sad', DEFAULTS.dt_sad); setInputValue('clamp_sad', DEFAULTS.clamp_sad);
+  setInputValue('T_traj', DEFAULTS.T_traj); setInputValue('dt_traj', DEFAULTS.dt_traj); setInputValue('clamp_traj', DEFAULTS.clamp_traj);
+  setInputValue('showKdot', DEFAULTS.showKdot); setInputValue('showCdot', DEFAULTS.showCdot);
+  setInputValue('showSaddle', DEFAULTS.showSaddle); setInputValue('showKgr', DEFAULTS.showKgr);
+  setInputValue('eps', DEFAULTS.eps);
+  clearTrajectories();
+  const axes = defaultAxes(readParams()); writeAxes(axes);
+  renderStaticEquations(); renderLociEquations(); renderPOI(readParams()); redraw(); setMsg('', 'ok');
+}
+
+// ------------ Event wiring ------------
+window.addEventListener('DOMContentLoaded', () => {
+  initTheme();
+  document.getElementById('theme').addEventListener('change', (e) => applyTheme(e.target.value));
+  document.getElementById('resetDefaults').addEventListener('click', () => resetDefaults());
+
+  document.getElementById('recompute').addEventListener('click', () => redraw());
+  document.getElementById('applyAxes').addEventListener('click', () => redraw());
+  document.getElementById('fitAxes').addEventListener('click', () => fitAxesToData());
+  document.getElementById('resetZoom').addEventListener('click', () => resetZoom());
+  document.getElementById('addTraj').addEventListener('click', () => addTrajectory(readParams(), readParams().axes));
+  document.getElementById('clearTraj').addEventListener('click', () => clearTrajectories());
+  document.getElementById('useC0').addEventListener('click', () => {
+    if (LATEST_C0_FROM_SADDLE != null && isFinite(LATEST_C0_FROM_SADDLE)) {
+      document.getElementById('c0').value = LATEST_C0_FROM_SADDLE.toFixed(6);
+    } else {
+      setMsg('c(0) is not available. Ensure parameters admit a steady state and the saddle path is computed.', 'warning');
+    }
+  });
+
+  ['A','alpha','delta','rho','n','g','sigma','k0',
+   'T_sad','dt_sad','clamp_sad',
+   'T_traj','dt_traj','clamp_traj',
+   'showKdot','showCdot','showSaddle','showKgr','eps']
+    .forEach(id => document.getElementById(id).addEventListener('change', () => redraw()));
+
+  renderStaticEquations();
+  renderLociEquations();
+  renderPOI(readParams());
+  writeAxes(defaultAxes(readParams()));
+  redraw();
+  renderTrajList();
+  attachResponsiveTooltips();
+});
+</script>
+</body>
+</html>
