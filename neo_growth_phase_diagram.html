@@ -763,7 +763,6 @@ function defaultAxes(p) {
   kmax *= 1.05; cmax *= 1.05;
   return {kmin, kmax, cmin: 0, cmax};
 }
-function fitAxesToData() { const p = readParams(); const axes = defaultAxesNoSaddle(p); writeAxes(axes); redraw(); }
 function writeAxes(axes) {
   document.getElementById('kmin').value = axes.kmin.toFixed(4);
   document.getElementById('kmax').value = axes.kmax.toFixed(4);
@@ -849,6 +848,7 @@ function renderPOI(p) {
 
 // ------------ Plotting ------------
 let firstPlot = true;
+let autoRangeMode = false;
 
 function getThemeColors() {
   const cs = getComputedStyle(document.documentElement);
@@ -919,16 +919,21 @@ function buildTraces(p, axes, ss, sad) {
   return traces;
 }
 
-function layoutFor(axes) {
+function layoutFor(axes, useAutorange = false) {
   const colors = getThemeColors();
-  return {
+  const layout = {
     paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)', font: { color: colors.text },
-    xaxis: { title: 'k (capital per effective labor)', rangemode: 'tozero', gridcolor: colors.grid, zerolinecolor: colors.zero, showspikes: true, spikemode: 'across', spikecolor: '#3b82f6', spikethickness: 1, automargin: true, range: [axes.kmin, axes.kmax] },
-    yaxis: { title: 'c (consumption per effective labor)', rangemode: 'tozero', gridcolor: colors.grid, zerolinecolor: colors.zero, showspikes: true, spikemode: 'across', spikecolor: '#3b82f6', spikethickness: 1, automargin: true, range: [axes.cmin, axes.cmax] },
+    xaxis: { title: 'k (capital per effective labor)', rangemode: 'tozero', gridcolor: colors.grid, zerolinecolor: colors.zero, showspikes: true, spikemode: 'across', spikecolor: '#3b82f6', spikethickness: 1, automargin: true },
+    yaxis: { title: 'c (consumption per effective labor)', rangemode: 'tozero', gridcolor: colors.grid, zerolinecolor: colors.zero, showspikes: true, spikemode: 'across', spikecolor: '#3b82f6', spikethickness: 1, automargin: true },
     hovermode: 'closest', hoverlabel: { namelength: -1 },
     legend: { orientation: 'h', yanchor: 'bottom', y: 1.02, xanchor: 'left', x: 0, bgcolor: 'rgba(0,0,0,0)', borderwidth: 0 },
     margin: { l: 64, r: 24, t: 48, b: 56 }, title: { text: '', x: 0, y: 1 }, uirevision: 'keep'
   };
+  if (!useAutorange) {
+    layout.xaxis.range = [axes.kmin, axes.kmax];
+    layout.yaxis.range = [axes.cmin, axes.cmax];
+  }
+  return layout;
 }
 
 function configObj() { return { responsive: true, displaylogo: false, scrollZoom: true, toImageButtonOptions: { filename: 'neo_growth_phase_diagram' }, modeBarButtonsToRemove: ['autoScale2d'] }; }
@@ -998,11 +1003,107 @@ function redraw() {
   renderInitOnSaddle(p, axes, ss, sad);
   renderPOI(p);
   const traces = buildTraces(p, axes, ss, sad);
-  const layout = layoutFor(axes);
+  const layout = layoutFor(axes, autoRangeMode);
   if (firstPlot) { Plotly.newPlot('plot', traces, layout, configObj()); firstPlot = false; }
   else { Plotly.react('plot', traces, layout, configObj()); }
 }
-function resetZoom() { Plotly.relayout('plot', {'xaxis.autorange': true, 'yaxis.autorange': true}); }
+function resetZoom() {
+  // Build traces without the saddle path for calculating ranges
+  const p = readParams();
+  const axes = p.axes;
+  const ss = steadyState_raw(p);
+
+  // Build all traces
+  const traces = [];
+
+  // Include kdot=0
+  if (p.showKdot) {
+    const kd0 = kdotZeroCurve(p, axes.kmin, axes.kmax);
+    traces.push({
+      type: 'scatter', mode: 'lines', name: 'kdot = 0',
+      x: kd0.x, y: kd0.y, line: { width: 2, dash: 'dash', color: COLORS.kdot }
+    });
+  }
+
+  // Include cdot=0
+  if (p.showCdot && ss.ok) {
+    const cd0 = cdotZeroLine(p, axes.cmin, axes.cmax);
+    const xVal = (cd0.x && cd0.x.length ? cd0.x[0] : ss.kstar);
+    if (xVal >= axes.kmin && xVal <= axes.kmax) {
+      traces.push({
+        type: 'scatter', mode: 'lines', name: 'cdot = 0',
+        x: cd0.x, y: cd0.y, line: { width: 2, dash: 'longdash', color: COLORS.cdot }
+      });
+    }
+  }
+
+  // Include golden rule k
+  if (p.showKgr) {
+    const kgr = goldenRuleK(p);
+    if (isFinite(kgr) && kgr > 0 && kgr >= axes.kmin && kgr <= axes.kmax) {
+      traces.push({
+        type: 'scatter', mode: 'lines', name: 'Golden rule k',
+        x: [kgr, kgr], y: [axes.cmin, axes.cmax],
+        line: { width: 2, dash: 'dot', color: COLORS.kgr }
+      });
+    }
+  }
+
+  // Include steady state
+  if (ss.ok) {
+    traces.push({
+      type: 'scatter', mode: 'markers', name: 'Steady state',
+      x: [ss.kstar], y: [ss.cstar], marker: { size: 10, symbol: 'circle', color: COLORS.steady }
+    });
+  }
+
+  // Include trajectories
+  for (const t of TRAJ) {
+    const xs = t.data.map(p => p[0]);
+    const ys = t.data.map(p => p[1]);
+    traces.push({
+      type: 'scatter', mode: 'lines', name: t.name, x: xs, y: ys,
+      line: { width: 2, color: trajColorForId(t.id) }
+    });
+  }
+
+  // Calculate the data ranges without the saddle path
+  let xmin = Infinity, xmax = -Infinity;
+  let ymin = Infinity, ymax = -Infinity;
+
+  for (const trace of traces) {
+    if (trace.x && trace.y) {
+      for (let i = 0; i < trace.x.length; i++) {
+        const x = trace.x[i], y = trace.y[i];
+        if (isFinite(x) && isFinite(y)) {
+          xmin = Math.min(xmin, x);
+          xmax = Math.max(xmax, x);
+          ymin = Math.min(ymin, y);
+          ymax = Math.max(ymax, y);
+        }
+      }
+    }
+  }
+
+  // Add some padding
+  const xpad = (xmax - xmin) * 0.05;
+  const ypad = (ymax - ymin) * 0.05;
+  xmin = Math.max(0, xmin - xpad);
+  xmax = xmax + xpad;
+  ymin = Math.max(0, ymin - ypad);
+  ymax = ymax + ypad;
+
+  // Apply the calculated range
+  if (isFinite(xmin) && isFinite(xmax) && isFinite(ymin) && isFinite(ymax)) {
+    Plotly.relayout('plot', {
+      'xaxis.range': [xmin, xmax],
+      'yaxis.range': [ymin, ymax]
+    });
+  } else {
+    // Fallback to autorange if we couldn't calculate ranges
+    Plotly.relayout('plot', {'xaxis.autorange': true, 'yaxis.autorange': true});
+  }
+}
 
 // ------------ Reset defaults ------------
 const DEFAULTS = {
@@ -1023,9 +1124,23 @@ function resetDefaults() {
   setInputValue('showKdot', DEFAULTS.showKdot); setInputValue('showCdot', DEFAULTS.showCdot);
   setInputValue('showSaddle', DEFAULTS.showSaddle); setInputValue('showKgr', DEFAULTS.showKgr);
   setInputValue('eps', DEFAULTS.eps);
+  setInputValue('kmin', DEFAULTS.axes.kmin); setInputValue('kmax', DEFAULTS.axes.kmax);
+  setInputValue('cmin', DEFAULTS.axes.cmin); setInputValue('cmax', DEFAULTS.axes.cmax);
   clearTrajectories();
-  const axes = defaultAxes(readParams()); writeAxes(axes);
-  renderStaticEquations(); renderLociEquations(); renderPOI(readParams()); redraw(); setMsg('', 'ok');
+
+  // Reset the plot state flags
+  firstPlot = true;
+  autoRangeMode = false;
+
+  // Re-render everything to initial state
+  renderStaticEquations();
+  renderLociEquations();
+
+  // Read params with defaults and render
+  const p = readParams();
+  renderPOI(p);
+  redraw();
+  setMsg('', 'ok');
 }
 
 // ------------ Event wiring ------------
@@ -1059,7 +1174,8 @@ window.addEventListener('DOMContentLoaded', () => {
   renderStaticEquations();
   renderLociEquations();
   renderPOI(readParams());
-  writeAxes(defaultAxes(readParams()));
+  // Use the DEFAULTS axes on initial load for consistency
+  writeAxes(DEFAULTS.axes);
   redraw();
   renderTrajList();
   attachResponsiveTooltips();
